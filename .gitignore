@@ -1,0 +1,7 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+results/*.pt
+results/*.png
+results/gate0/*.pt
