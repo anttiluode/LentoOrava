@@ -11,6 +11,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from lentoorava import OrganismConfig, PairCopyDataset, make_variant
+from lentoorava.losses import LossConfig, organism_loss
 
 
 def set_seed(seed: int):
@@ -19,31 +20,27 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
 
 
-def losses(pred: torch.Tensor, target: torch.Tensor):
-    full = ((pred - target) ** 2).mean()
-    mid = pred.shape[-1] // 2
-    right = ((pred[..., :, mid:] - target[..., :, mid:]) ** 2).mean()
-    return full + 4.0 * right, full, right
-
-
 @torch.no_grad()
-def evaluate(model, loader, device):
+def evaluate(model, loader, device, loss_cfg, progress: float):
     model.eval()
-    totals = torch.zeros(3, device=device)
+    sums = {"loss": 0.0, "full_mse": 0.0, "right_mse": 0.0, "pyramid": 0.0, "mass": 0.0}
     count = 0
     for observed, target, _ in loader:
         observed, target = observed.to(device), target.to(device)
         pred = model(observed)
-        vals = losses(pred, target)
-        totals += torch.tensor([v.item() for v in vals], device=device) * observed.shape[0]
-        count += observed.shape[0]
-    return (totals / count).cpu().tolist()
+        total, metrics = organism_loss(pred, target, progress=progress, cfg=loss_cfg)
+        b = observed.shape[0]
+        sums["loss"] += total.item() * b
+        for key in ["full_mse", "right_mse", "pyramid", "mass"]:
+            sums[key] += metrics[key].item() * b
+        count += b
+    return {k: v / count for k, v in sums.items()}
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", choices=["active", "fixed", "transport"], default="active")
-    ap.add_argument("--epochs", type=int, default=12)
+    ap.add_argument("--variant", choices=["active", "carrier", "fixed", "transport"], default="active")
+    ap.add_argument("--epochs", type=int, default=18)
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--train-size", type=int, default=4096)
     ap.add_argument("--val-size", type=int, default=512)
@@ -51,6 +48,8 @@ def main():
     ap.add_argument("--agents", type=int, default=12)
     ap.add_argument("--channels", type=int, default=24)
     ap.add_argument("--lr", type=float, default=2e-3)
+    ap.add_argument("--pyramid-gain", type=float, default=0.05)
+    ap.add_argument("--mass-gain", type=float, default=0.15)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--out", default=None)
@@ -59,6 +58,7 @@ def main():
     set_seed(args.seed)
     device = torch.device(args.device)
     cfg = OrganismConfig(steps=args.steps, n_agents=args.agents, channels=args.channels)
+    loss_cfg = LossConfig(pyramid_gain=args.pyramid_gain, mass_gain=args.mass_gain)
     model = make_variant(args.variant, cfg).to(device)
 
     train_ds = PairCopyDataset(args.train_size, seed=args.seed * 100_000 + 1)
@@ -72,10 +72,11 @@ def main():
         model.train()
         running = 0.0
         seen = 0
+        progress = (epoch - 1) / max(args.epochs - 1, 1)
         for observed, target, _ in train_loader:
             observed, target = observed.to(device), target.to(device)
             pred = model(observed)
-            loss, _, _ = losses(pred, target)
+            loss, _ = organism_loss(pred, target, progress=progress, cfg=loss_cfg)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -83,13 +84,16 @@ def main():
             running += loss.item() * observed.shape[0]
             seen += observed.shape[0]
 
-        val_total, val_full, val_right = evaluate(model, val_loader, device)
+        val = evaluate(model, val_loader, device, loss_cfg, progress)
         row = {
             "epoch": epoch,
+            "progress": progress,
             "train_loss": running / seen,
-            "val_loss": val_total,
-            "val_full_mse": val_full,
-            "val_right_mse": val_right,
+            "val_loss": val["loss"],
+            "val_full_mse": val["full_mse"],
+            "val_right_mse": val["right_mse"],
+            "val_pyramid": val["pyramid"],
+            "val_mass": val["mass"],
         }
         history.append(row)
         print(json.dumps(row))
@@ -100,6 +104,7 @@ def main():
         {
             "state_dict": model.state_dict(),
             "cfg": vars(cfg),
+            "loss_cfg": vars(loss_cfg),
             "variant": args.variant,
             "history": history,
         },

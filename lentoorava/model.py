@@ -21,20 +21,23 @@ class OrganismConfig:
     write_sigma: float = 0.11
     write_gain: float = 0.45
     transport_gain: float = 0.25
+    start_layout: str = "source_line"
+    source_x: float = -0.548
+    target_x: float = 0.548
+    y_min: float = -0.677
+    y_max: float = 0.677
+    decode_bias: float = -4.0
 
 
 class BoundedImageOrganism(nn.Module):
-    """Shared latent field plus bounded local observer/writers.
+    """Shared latent field plus bounded local observer/writers."""
 
-    No observer receives global pooling, global attention, or a flattened image.
-    Each agent knows only its current address, a local sampled patch, and its
-    private recurrent state.
-    """
-
-    def __init__(self, cfg: OrganismConfig | None = None, *, movable: bool = True, agents: bool = True):
+    def __init__(self, cfg: OrganismConfig | None = None, *, motion: str = "learned", agents: bool = True):
         super().__init__()
         self.cfg = cfg or OrganismConfig()
-        self.movable = bool(movable)
+        self.motion = motion
+        if motion not in {"learned", "fixed", "scripted"}:
+            raise ValueError(f"unknown motion: {motion}")
         self.agents = bool(agents)
         c = self.cfg.channels
         p = self.cfg.patch_size
@@ -54,20 +57,36 @@ class BoundedImageOrganism(nn.Module):
         self.write_head = nn.Linear(self.cfg.hidden_dim, c)
         self.gate_head = nn.Linear(self.cfg.hidden_dim, 1)
         self.decode = nn.Conv2d(c, 3, kernel_size=1)
+        nn.init.constant_(self.decode.bias, self.cfg.decode_bias)
 
         self.agent_seed = nn.Parameter(torch.zeros(self.cfg.n_agents, self.cfg.hidden_dim))
         nn.init.normal_(self.agent_seed, std=0.02)
-        self.register_buffer("start_pos", self._initial_positions(self.cfg.n_agents))
+        self.register_buffer("start_pos", self._initial_positions())
         self.register_buffer("pixel_grid", self._pixel_grid(self.cfg.image_size), persistent=False)
 
-    @staticmethod
-    def _initial_positions(n: int) -> torch.Tensor:
-        cols = math.ceil(math.sqrt(n))
-        rows = math.ceil(n / cols)
-        xs = torch.linspace(-0.8, 0.8, cols)
-        ys = torch.linspace(-0.8, 0.8, rows)
-        pts = torch.stack(torch.meshgrid(ys, xs, indexing="ij"), dim=-1)[..., [1, 0]].reshape(-1, 2)
-        return pts[:n]
+    def _initial_positions(self) -> torch.Tensor:
+        n = self.cfg.n_agents
+        if self.cfg.start_layout == "grid":
+            cols = math.ceil(math.sqrt(n))
+            rows = math.ceil(n / cols)
+            xs = torch.linspace(-0.8, 0.8, cols)
+            ys = torch.linspace(-0.8, 0.8, rows)
+            pts = torch.stack(torch.meshgrid(ys, xs, indexing="ij"), dim=-1)[..., [1, 0]].reshape(-1, 2)
+            return pts[:n]
+        if self.cfg.start_layout == "source_line":
+            ys = torch.linspace(self.cfg.y_min, self.cfg.y_max, n)
+            return torch.stack([torch.full_like(ys, self.cfg.source_x), ys], dim=-1)
+        if self.cfg.start_layout == "bridge":
+            n_source = (n + 1) // 2
+            n_target = n - n_source
+            ys_source = torch.linspace(self.cfg.y_min, self.cfg.y_max, n_source)
+            source = torch.stack([torch.full_like(ys_source, self.cfg.source_x), ys_source], dim=-1)
+            if n_target == 0:
+                return source
+            ys_target = torch.linspace(self.cfg.y_min, self.cfg.y_max, n_target)
+            target = torch.stack([torch.full_like(ys_target, self.cfg.target_x), ys_target], dim=-1)
+            return torch.cat([source, target], dim=0)
+        raise ValueError(f"unknown start_layout: {self.cfg.start_layout}")
 
     @staticmethod
     def _pixel_grid(size: int) -> torch.Tensor:
@@ -110,9 +129,8 @@ class BoundedImageOrganism(nn.Module):
         state = self.agent_seed.to(observed).unsqueeze(0).expand(b, -1, -1).clone()
         traces = [pos.detach()]
 
-        for _ in range(self.cfg.steps):
+        for step in range(self.cfg.steps):
             field = field + self.cfg.transport_gain * self.transport(field)
-
             if self.agents:
                 patches = self._sample_local(field, pos)
                 read = self.read_proj(patches)
@@ -122,9 +140,13 @@ class BoundedImageOrganism(nn.Module):
                     state.reshape(b * self.cfg.n_agents, -1),
                 ).reshape(b, self.cfg.n_agents, -1)
 
-                if self.movable:
+                if self.motion == "learned":
                     move = torch.tanh(self.move_head(state)) * self.cfg.max_step
                     pos = (pos + move).clamp(-1.0, 1.0)
+                elif self.motion == "scripted":
+                    frac = float(step + 1) / float(self.cfg.steps)
+                    x = self.cfg.source_x + frac * (self.cfg.target_x - self.cfg.source_x)
+                    pos = torch.stack([torch.full_like(pos[..., 0], x), pos[..., 1]], dim=-1)
 
                 values = torch.tanh(self.write_head(state))
                 gates = torch.sigmoid(self.gate_head(state))
@@ -141,9 +163,11 @@ class BoundedImageOrganism(nn.Module):
 def make_variant(name: str, cfg: OrganismConfig | None = None) -> BoundedImageOrganism:
     name = name.lower()
     if name == "active":
-        return BoundedImageOrganism(cfg, movable=True, agents=True)
+        return BoundedImageOrganism(cfg, motion="learned", agents=True)
+    if name == "carrier":
+        return BoundedImageOrganism(cfg, motion="scripted", agents=True)
     if name == "fixed":
-        return BoundedImageOrganism(cfg, movable=False, agents=True)
+        return BoundedImageOrganism(cfg, motion="fixed", agents=True)
     if name == "transport":
-        return BoundedImageOrganism(cfg, movable=False, agents=False)
+        return BoundedImageOrganism(cfg, motion="fixed", agents=False)
     raise ValueError(f"unknown variant: {name}")

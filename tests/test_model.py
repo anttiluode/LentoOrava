@@ -9,11 +9,19 @@ def test_dataset_shapes_and_hidden_half():
     assert target[:, :, 16:].sum() > observed[:, :, 16:].sum()
 
 
+def test_render_is_deterministic_without_noise():
+    ds = PairCopyDataset(4, seed=1)
+    a, ta = ds.render(10, 1, noisy=False)
+    b, tb = ds.render(10, 1, noisy=False)
+    assert torch.equal(a, b)
+    assert torch.equal(ta, tb)
+
+
 def test_all_variants_forward_and_backward():
     x, target, _ = PairCopyDataset(4, seed=2)[0]
     batch = x[None].repeat(2, 1, 1, 1)
 
-    for name in ["active", "fixed", "transport"]:
+    for name in ["active", "carrier", "fixed", "transport"]:
         cfg = OrganismConfig(
             channels=8,
             n_agents=4,

@@ -5,3 +5,5 @@ __pycache__/
 results/*.pt
 results/*.png
 results/gate0/*.pt
+results/gate0a/*.pt
+results/gate0a/*.png

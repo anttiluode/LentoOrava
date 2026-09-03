@@ -2,13 +2,21 @@
 
 **Flying squirrel conservation program. Sol thinking repo.**
 
-`LentoOrava` is the first concrete image-model build of a recurring idea from the Geometric Neuron / V24 / Child / BlackBoxLab / Operaattori line:
+`LentoOrava` asks one concrete question:
 
-> **The global state does not need to be globally observed. It only needs to be causally shared.**
+> **Can a bounded observer capture a local fact and cause the corresponding fact to appear somewhere distant?**
 
-A normal image model is allowed to process the whole latent tensor at once. LentoOrava deliberately inserts a harsher interface. A population of small observer-writers gets only a local patch, its current address, and a private recurrent state. Each observer may move and write locally into one shared latent field. A tiny pointwise decoder reads the final field as RGB.
+The system has one causally shared latent field and a sparse population of local observer-writers. No observer receives global pooling, global attention, a flattened image, or the final target. Each has only:
 
-The first question is not whether this beats diffusion. It is whether **global image structure can be assembled by bounded local agents at all**, and whether active addressing earns anything over matched boring controls.
+```text
+local patch
++ current address
++ private recurrent state
+```
+
+and can make only a local write.
+
+The final RGB readout is deliberately a **1x1 decoder**, so it cannot repair long-range geometry after the observers finish.
 
 ## The machine
 
@@ -21,174 +29,272 @@ pointwise input projection
         v
 +---------------- shared latent field X_t ----------------+
 |                                                          |
-|   local transport operator                               |
-|           |                                              |
-|       +---+-----------+-----------+-----------+          |
-|       |               |           |           |          |
-|   observer 1      observer 2   ... observer N            |
-|   local READ      local READ       local READ             |
-|   private h_1     private h_2      private h_N            |
-|   choose move     choose move      choose move            |
-|   local WRITE     local WRITE      local WRITE             |
-|       +---------------+-----------+-----------+            |
-|                       |                                ^   |
-+-----------------------+--------------------------------+---+
-                        |
-                 pointwise RGB decoder
-                        |
-                        v
-                    one image
+|        local transport                                   |
+|              |                                           |
+|    local READ -> private state -> move -> local WRITE     |
+|        ^                                      |          |
+|        +--------------------------------------+          |
+|                                                          |
++----------------------------------------------------------+
+        |
+        v
+pointwise RGB decoder
+        |
+        v
+one global image
 ```
 
-No observer receives global pooling, a flattened image, or global attention. Its observation is
+The global state never has to be globally observed. It only has to be **causally shared**.
+
+# Gate 0 — read, carry, write
+
+The synthetic target contains two same-colour Gaussian blobs at the same vertical coordinate. The input exposes only the left blob. The corresponding right blob is absent.
+
+Colour and y vary independently from sample to sample.
+
+The intended causal chain is:
 
 ```text
-(local patch, current address, private state)
+local observer encounters source
+             |
+             v
+      private state changes
+             |
+             v
+      observer / signal travels
+             |
+             v
+      distant local write changes
+             |
+             v
+        final image changes
 ```
 
-and its action is
+## Why the first Gate 0 run was not a pass
+
+The original 12-epoch run produced:
+
+| arm | hidden-right MSE |
+|---|---:|
+| ACTIVE | 0.007609 |
+| FIXED | 0.008155 |
+| TRANSPORT | 0.008480 |
+
+That ordering looked encouraging, but the exact best constant-image attacker scores **0.007520**. ACTIVE therefore had not solved the correspondence. Its broad vertical smear was consistent with an uncertainty-average solution.
+
+There was also a second assay bug: under the old square start grid, the nearest initial observer lay 3.93–7.07 pixels from the source centre while its READ window was only 3x3. We were asking whether information could be carried before reliably letting a bounded observer acquire it.
+
+See [`results/GATE0_DIAGNOSIS.md`](results/GATE0_DIAGNOSIS.md).
+
+# Gate 0A — make the assay answerable
+
+Gate 0A separates **capture**, **transport**, and **policy learning**.
+
+## 1. Source rail
+
+Observers now start along a vertical rail at the known source x coordinate and span the allowed y range.
+
+This is not yet an active-search claim. It makes local fact acquisition a controlled precondition.
+
+## 2. CARRIER positive control
+
+A new `carrier` arm uses the exact same bounded READ, private GRU state, latent WRITE and 1x1 decoder as ACTIVE, but its x address is scripted to cross from the source rail to the target rail while preserving y.
+
+| arm | local read | private state | movement | local write |
+|---|---:|---:|---|---:|
+| **CARRIER** | yes | yes | scripted source → target | yes |
+| **ACTIVE** | yes | yes | learned | yes |
+| **FIXED** | yes | yes | none | yes |
+| **TRANSPORT** | no | no | none | no |
+
+This gives the experiment a proper diagnosis:
 
 ```text
-(move address, local Gaussian write)
+CARRIER fails
+    -> the bounded read/carry/write body or objective is broken
+
+CARRIER passes, ACTIVE fails
+    -> learned movement/policy is the bottleneck
+
+ACTIVE passes, FIXED fails
+    -> learned mobility has earned a causal role
 ```
 
-The shared field is the only place where their work becomes global.
+## 3. Coarse-to-fine objective
 
-## Gate 0 — long-range copy through a shared body
+The target blob has sigma=1.8 px. Under fine MSE, a candidate write several pixels away has almost no overlap with the target and therefore almost no useful directional gradient.
 
-The synthetic target contains **two same-colour Gaussian blobs** at the same vertical coordinate. The input exposes only the left blob; the right blob is absent.
+Training now compares the hidden half at Gaussian scales:
 
-A pixel-local solution cannot know the missing right-hand colour or y-coordinate. Evidence has to travel through state.
+```text
+6 px -> 3 px -> 1.5 px -> native resolution
+```
 
-Three arms use the same basic latent field:
+with a coarse-to-fine curriculum.
 
-| arm | local agents | private recurrent state | movable address | local write |
-|---|---:|---:|---:|---:|
-| **ACTIVE** | yes | yes | **yes** | yes |
-| **FIXED** | yes | yes | no | yes |
-| **TRANSPORT** | no | no | no | no |
+A weak per-channel mass constraint also makes "write nothing" a less attractive uncertainty strategy.
 
-The main metric is MSE on the hidden right half, not merely whole-image MSE.
+This is the optimization analogue of the V24 lens lesson:
 
-The important outcome is not "ACTIVE wins" by definition. A clean negative is useful:
+> when the fine question gives no useful direction, ask a coarser version first.
 
-- if `TRANSPORT` matches it, the agents are decoration;
-- if `FIXED` matches it, active addressing is unnecessary;
-- if all fail, bounded local writes are insufficient in this implementation;
-- if `ACTIVE` wins on held-out y positions/colours, then address choice has earned a role.
+Implementation: [`lentoorava/losses.py`](lentoorava/losses.py).
 
-## Run
+## 4. Boring attackers are first-class outputs
+
+Run:
+
+```bash
+python experiments/gate0_baselines.py
+```
+
+Current exact-support rulers:
+
+| attacker | hidden-right MSE |
+|---|---:|
+| zeros | 0.009117 |
+| identity / noisy input | 0.008964 |
+| **dataset mean** | **0.007520** |
+| knows colour, averages over y | 0.006737 |
+| knows y, averages over colour | 0.003000 |
+| oracle y + colour | 0 |
+
+The important split is already visible: knowing **y** is much more valuable than knowing colour. Gate 0 is fundamentally a long-range spatial-information problem.
+
+The machine-readable receipt is [`results/GATE0_BASELINES.json`](results/GATE0_BASELINES.json).
+
+# Gate 0B — is ACTIVE actually looking?
+
+Movement itself is not enough. A learned observer can execute a clockwork flight plan independent of evidence.
+
+After training an ACTIVE checkpoint, run:
+
+```bash
+python experiments/gate0_policy_audit.py results/gate0a/active_seed0.pt
+```
+
+It reruns the same network while changing only:
+
+```text
+same colour, different y
+same y, different colour
+real evidence versus blank input
+```
+
+and reports RMS trajectory changes in pixels.
+
+If those numbers are approximately zero, the path is a schedule rather than an evidence-dependent policy.
+
+# Run the experiment
 
 ```bash
 python -m pip install -r requirements.txt
 pytest -q
 
-python train.py --variant active --epochs 12
-python train.py --variant fixed --epochs 12
-python train.py --variant transport --epochs 12
+python experiments/gate0_baselines.py
+python experiments/gate0_compare.py --epochs 18 --seeds 0 1 2 --device cuda
+python experiments/gate0_policy_audit.py results/gate0a/active_seed0.pt --device cuda
+python demo.py results/gate0a/active_seed0.pt --out results/gate0a/demo.png
 ```
 
-Or run the three-arm comparison:
+`gate0_compare.py` runs `CARRIER`, `ACTIVE`, `FIXED`, and `TRANSPORT`, records each arm's best hidden-right MSE, and puts the trivial attackers on the screen first.
 
-```bash
-python experiments/gate0_compare.py --epochs 12 --device cpu
-```
+## Gate condition
 
-On CUDA, use `--device cuda`.
+Do **not** call Gate 0 passed merely because ACTIVE beats FIXED.
 
-Make a trajectory panel from a trained ACTIVE checkpoint:
-
-```bash
-python demo.py results/active_seed0.pt
-```
-
-The fourth panel plots every observer's address through time. The paths are not an attention visualization computed after the fact; they are the actual coordinates used to sample and write the shared field.
-
-## Model equations
-
-Let the shared latent be
+The order is:
 
 ```text
-X_t in R^(C x H x W)
+1. CARRIER must beat the dataset mean
+       otherwise the assay/body is not yet capable
+
+2. ACTIVE must beat trivial distributional attackers
+       otherwise it is averaging rather than transferring
+
+3. ACTIVE must beat FIXED across seeds
+       otherwise mobility is unnecessary
+
+4. trajectory must depend measurably on evidence
+       otherwise movement is only a learned flight plan
 ```
 
-and observer `i` have address `a_i(t)` and private state `h_i(t)`.
+Only after those conditions does the sentence
 
-The shared body first performs a local transport step
+> **a bounded observer captured a local fact and caused a corresponding distant fact**
+
+become earned.
+
+# Why this is interesting as an image model
+
+Iterative shared-latent image generation is not new. DRAW, recurrent attention, neural cellular automata, diffusion models and many other systems occupy neighboring territory.
+
+The deliberately narrow object here is:
+
+> **many bounded observer-writers with private state, no global recurrent controller, and a shared spatial body that is the only place their work becomes global.**
+
+That suggests later image-model regimes where the value is not brute-force generation quality but **assembly, repair, sparse active sensing, and adaptive resolution**.
+
+A future damage experiment is especially direct:
 
 ```text
-X'_t = X_t + alpha A_theta(X_t)
+complete latent
+    |
+erase one region
+    |
+observers continue
+    |
+do their actual trajectories redirect toward the lesion?
+    |
+does the image recover only when somebody reaches it?
 ```
 
-where `A_theta` is a depthwise-local learned operator.
+That would distinguish mobile repair from a decoder that simply hallucinates the missing region.
 
-Each observer then samples only a small patch
+# Ladder
+
+If Gate 0 passes:
+
+1. **Relocation** — vary source and target geometry so a fixed destination schedule fails.
+2. **Multiscale addresses** — observers choose scale as well as position; necessary before large images.
+3. **Damage / repair** — do mobile observers seek and repair missing latent state?
+4. **Specialization** — do identical observers diverge into stable functional roles?
+5. **Operator memory** — repeated local traffic slowly changes the transport operator itself.
+6. **Real-image inpainting** — matched CNN / recurrent-attention / neural-CA attackers.
+7. **Only then:** generation from noise or text.
+
+Gate 5 is where the tree idea truly enters:
 
 ```text
-r_i(t) = READ(X'_t, a_i(t))
+what passed through the body
+        |
+slowly changes local transport
+        |
+future information travels differently
 ```
 
-updates private history
+The structure then becomes simultaneously **memory, bias, and computation**.
 
-```text
-h_i(t+1) = GRU(h_i(t), r_i(t), a_i(t))
-```
+# Lineage
 
-moves by a bounded amount
+This repo is a convergence, not a claim that every old metaphor was correct:
 
-```text
-a_i(t+1) = clip(a_i(t) + delta_i(h_i), -1, 1)
-```
+- [Geometric-Neuron](https://github.com/anttiluode/Geometric-Neuron) — history represented through geometry; structural adaptation.
+- [GeometricNeuronV24](https://github.com/anttiluode/GeometricNeuronV24) — address + measurement; active READ/WRITE and observability.
+- [Child](https://github.com/anttiluode/Child) — prediction changes the state from which the next prediction is made.
+- [BlackBoxLab](https://github.com/anttiluode/BlackBoxLab) — sampling policy can differentiate computation or collapse into monoculture.
+- [Twensday](https://github.com/anttiluode/Twensday) — persistent structure parameterizes an effective operator.
+- [Operaattori](https://github.com/anttiluode/Operaattori) / [OperaattoriJako](https://github.com/anttiluode/OperaattoriJako) — transport versus nonlinear state-mediated response.
+- TinyAvatar / SplatWorld — image as readout of a shared latent/field.
 
-and makes a local differentiable Gaussian write
-
-```text
-X_(t+1) = X'_t + sum_i gate_i * Gaussian(a_i) * value_i.
-```
-
-Finally a **1x1 decoder** maps the field to RGB. The decoder therefore cannot create long-range structure by itself; spatial communication must already be present in the field.
-
-## Why this is related to diffusion only at a high level
-
-Diffusion models demonstrate the uncontroversial fact that iterative transformations of a shared latent can end in a globally coherent image. LentoOrava is testing a different computational constraint:
-
-> can that latent be organized when the workers themselves are bounded observers with local read/write access rather than globally applied blocks?
-
-This repository makes no claim of superiority to diffusion, CNNs, transformers, neural cellular automata, active vision, or recurrent attention. Those are attackers and neighboring literatures, not rhetorical enemies.
-
-## Lineage
-
-The machinery is a convergence, not a claim that the old metaphors were all correct:
-
-- **Geometric-Neuron** — history represented through geometry; early structural adaptation experiments.
-- **GeometricNeuronV24** — address + scalar measurement; active READ/WRITE; observability rather than fixed readout.
-- **Child** — if a prediction changes the state from which the next prediction is made, prediction becomes dynamics.
-- **BlackBoxLab** — sampling policy can drive specialization, but can also collapse into monoculture.
-- **Twensday** — persistent structure is a constrained parameterization of an effective operator.
-- **Operaattori / Jako** — separate transport from nonlinear state-mediated response.
-- **TinyAvatar / SplatWorld** — an image as the final readout of a shared latent/field is already a useful implementation language.
-
-LentoOrava keeps only the executable seam:
+The executable seam kept here is simply:
 
 ```text
 bounded observation
-      +
-private history
-      +
-local action
-      +
-causally shared state
-      =
-possible global output
++ private history
++ local action
++ causally shared state
+= possible global output
 ```
 
-## Next gates if Gate 0 survives
-
-1. **Gate 1 — relocation:** move the hidden partner relation and test whether ACTIVE learned a policy rather than one address.
-2. **Gate 2 — multiscale:** let the same agent choose patch scale as well as position; compare information-gain-like policies to learned movement.
-3. **Gate 3 — specialization:** remove identical initial roles and measure whether observers differentiate into stable functions.
-4. **Gate 4 — operator memory:** let repeated local traffic slowly alter transport itself, then test whether history changes future image completion after fast state is erased.
-5. **Gate 5 — real images:** masked CIFAR/CelebA inpainting with matched CNN/recurrent-attention/neural-CA attackers.
-6. **Only then:** conditional generation from noise and text.
-
-The rule for the repo is the same as the newer work elsewhere: **attackers first, claims second.**
+**Attackers first, claims second.**
