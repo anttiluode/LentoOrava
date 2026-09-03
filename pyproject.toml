@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pulse-triage"
+version = "0.1.0"
+description = "Budgeted black-box regression localization from one scalar score"
+readme = "docs/PULSE_TRIAGE.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Antti Luode"}]
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+benchmark = ["scikit-learn>=1.5"]
+test = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/anttiluode/LentoOrava"
+Documentation = "https://github.com/anttiluode/LentoOrava/blob/main/docs/PULSE_TRIAGE.md"
+Repository = "https://github.com/anttiluode/LentoOrava"
+
+[project.scripts]
+pulsetriage = "pulsetriage.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pulsetriage*"]

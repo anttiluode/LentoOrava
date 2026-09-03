@@ -14,5 +14,13 @@ jobs:
           python-version: "3.11"
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements.txt
+      - run: python -m pip install -r requirements-pulsetriage.txt
       - run: PYTHONPATH=. pytest -q
+      - run: python examples/flag_regression.py
+      - run: >-
+          python experiments/pulse_triage_digits.py
+          --trials 64
+          --permutations 64
+          --require-pass
+          --out /tmp/PULSE_TRIAGE_DIGITS.json
       - run: node --check web/app.js

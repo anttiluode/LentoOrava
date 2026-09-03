@@ -46,3 +46,8 @@ def test_browser_code_names_the_scalar_boundary_and_attackers():
     assert "function selectRandom(input, budget, repairSlots, seed)" in source
     assert "function selectExhaustive(input, repairSlots)" in source
 
+
+def test_live_demo_links_to_reusable_pulse_triage_tool():
+    html = (ROOT / "index.html").read_text()
+    assert "docs/PULSE_TRIAGE.md" in html
+    assert "USE PULSETRIAGE" in html
