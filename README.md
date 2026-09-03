@@ -1,3 +1,61 @@
+# PulseTriage — find the regression from one number
+
+`LentoOrava` has produced a practical tool. **PulseTriage** finds a few harmful
+changes among hundreds of candidates when every safe rollback returns only one
+expensive scalar KPI.
+
+```python
+from pulsetriage import triage
+
+result = triage(
+    candidate_changes,
+    evaluate=lambda rolled_back: run_validation(rolled_back),
+    budget=57,
+    max_suspects=4,
+)
+```
+
+The evaluator owns the system. PulseTriage sees no logs, examples, gradients,
+or internal state—only the candidate IDs it asked to roll back and the resulting
+number. Balanced coded rollbacks screen the candidates, a sparse decoder forms
+a shortlist, and individual rollbacks confirm what should actually be undone.
+
+## Executed practical receipt
+
+A frozen handwritten-digit classifier was given **256 possible preprocessing
+changes**; four randomly selected high-impact pixel/shard changes were broken.
+Each intervention returned only aggregate validation log loss.
+
+| method | lost KPI recovered | actual faults recalled | scalar evaluations |
+|---|---:|---:|---:|
+| **PulseTriage** | **92.77%** | **87.11%** | **57** |
+| equal-budget random individual rollback | 20.81% | 17.58% | 57 |
+| exhaustive individual rollback | 98.39% | 92.97% | 257 |
+| shuffled pulse address | 0.00% | 0.00% | 57 |
+
+Across 64 deterministic fault sets, PulseTriage obtained **94.29% of the
+exhaustive ruler's recovery with 22.18% of its calls**. Its permutation-calibrated
+screen and direct confirmations are part of the returned result, so an
+uninformative or interaction-dominated KPI can produce `inconclusive` rather
+than a decorative ranking.
+
+- [Use PulseTriage](docs/PULSE_TRIAGE.md)
+- [Real-workload receipt](results/PULSE_TRIAGE_DIGITS.md)
+- [Machine-readable receipt](results/PULSE_TRIAGE_DIGITS.json)
+- [Executable benchmark](experiments/pulse_triage_digits.py)
+- [Thirty-second example](examples/flag_regression.py)
+
+Scope: this is useful when candidate rollbacks are **safe and reversible**, the
+regression is **sparse**, and grouped effects are approximately additive. It is
+not a replacement for logs, tracing, exhaustive tests when those are cheap, or
+interaction-aware debugging.
+
+The flying-squirrel experiment below is now the visual explanation and origin
+of the tool: local interventions, one global consequence, and a strict probe
+budget.
+
+---
+
 # LentoOrava — bounded observers make one image
 
 **Flying squirrel conservation program. Sol thinking repo.**

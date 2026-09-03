@@ -1,0 +1,129 @@
+{
+  "assay": "scalar-only rollback localization in a frozen classifier pipeline",
+  "dataset": "scikit-learn handwritten digits (8x8)",
+  "model": "StandardScaler + multinomial logistic regression",
+  "split_seed": 42,
+  "clean_validation_accuracy": 0.9697933227344993,
+  "clean_validation_negative_log_loss": -0.10436241871467876,
+  "trials": 64,
+  "trial_seed": 260903,
+  "candidate_changes": 256,
+  "candidate_definition": "64 pixel preprocessing transforms x 4 validation shards",
+  "faults_per_trial": 4,
+  "fault_sampling": "uniform without replacement from the top 24 coefficient-norm pixel features x four shards; the pool is fixed before trial outcomes",
+  "public_observation": "one aggregate validation negative-log-loss score per rollback",
+  "pulse_triage_configuration": {
+    "budget": 57,
+    "balanced_complement_pairs": 24,
+    "shortlist_confirmations": 8,
+    "sparse_model_terms": 8,
+    "permutation_calibrations": 64
+  },
+  "locked_gate": {
+    "minimum_mean_score_recovery": 0.85,
+    "minimum_mean_fault_recall": 0.8,
+    "minimum_recovery_advantage_over_random": 0.45,
+    "maximum_fraction_of_exhaustive_calls": 0.25,
+    "maximum_shuffled_address_recovery": 0.4
+  },
+  "measurements": {
+    "pulse_triage": {
+      "score_recovery": {
+        "mean": 0.9277054293768936,
+        "median": 1.0,
+        "central_95pct": [
+          0.0,
+          1.0
+        ]
+      },
+      "fault_recall": {
+        "mean": 0.87109375,
+        "median": 1.0,
+        "central_95pct": [
+          0.0,
+          1.0
+        ]
+      },
+      "exact_fault_set_rate": 0.6875,
+      "conclusive_rate": 0.953125,
+      "median_screen_p_value": 0.015384615384615385,
+      "scalar_calls": 57
+    },
+    "equal_budget_random_individual": {
+      "score_recovery": {
+        "mean": 0.20814500507856948,
+        "median": 0.11025869322576207,
+        "central_95pct": [
+          0.0,
+          0.6453305143753316
+        ]
+      },
+      "fault_recall": {
+        "mean": 0.17578125,
+        "median": 0.25,
+        "central_95pct": [
+          0.0,
+          0.5
+        ]
+      },
+      "scalar_calls": 57
+    },
+    "exhaustive_individual": {
+      "score_recovery": {
+        "mean": 0.9838852873555609,
+        "median": 1.0,
+        "central_95pct": [
+          0.8589702469945384,
+          1.0
+        ]
+      },
+      "fault_recall": {
+        "mean": 0.9296875,
+        "median": 1.0,
+        "central_95pct": [
+          0.64375,
+          1.0
+        ]
+      },
+      "scalar_calls": 257
+    },
+    "shuffled_pulse_address": {
+      "score_recovery": {
+        "mean": 0.0,
+        "median": 0.0,
+        "central_95pct": [
+          0.0,
+          0.0
+        ]
+      },
+      "fault_recall": {
+        "mean": 0.0,
+        "median": 0.0,
+        "central_95pct": [
+          0.0,
+          0.0
+        ]
+      },
+      "scalar_calls": 57
+    },
+    "oracle_true_fault_rollback": {
+      "score_recovery": 1.0,
+      "fault_recall": 1.0,
+      "available_to_debugger": false
+    }
+  },
+  "comparisons": {
+    "active_minus_random_score_recovery": 0.7195604242983241,
+    "active_fraction_of_exhaustive_calls": 0.22178988326848248,
+    "active_fraction_of_exhaustive_score_recovery": 0.9428999917971487
+  },
+  "gate_checks": {
+    "mean_score_recovery": true,
+    "mean_fault_recall": true,
+    "advantage_over_random": true,
+    "call_fraction": true,
+    "shuffled_address_fails": true
+  },
+  "classification": "PULSE_TRIAGE_PASSES_REAL_CLASSIFIER_ROLLBACK_GATE",
+  "scope": "Sparse rollback debugging with an approximately additive scalar KPI. Faults are injected into a real frozen classifier workload; this is not a claim to diagnose arbitrary interactions or production systems without a safe reversible intervention."
+}
