@@ -1,0 +1,49 @@
+{
+  "assay": "bilateral local repair under scalar-only global evaluation",
+  "trials": 512,
+  "seed": 240903,
+  "wounds_per_trial": [
+    1,
+    3
+  ],
+  "pulse_budget": 36,
+  "repair_slots": 5,
+  "tile_size_px": 6,
+  "probe_alpha": 0.35,
+  "candidate_tiles": 128,
+  "active": {
+    "mean": 0.8109383779551704,
+    "median": 0.8686273548930601,
+    "central_95pct": [
+      0.3425528356835069,
+      1.0
+    ],
+    "mean_pulse_calls": 34.5
+  },
+  "equal_budget_random": {
+    "mean": 0.2627834587816069,
+    "median": 0.2341072912222555,
+    "central_95pct": [
+      0.0,
+      0.7943252169108026
+    ],
+    "mean_pulse_calls": 36.0
+  },
+  "exhaustive_tile_scan": {
+    "mean": 0.8706124512112141,
+    "median": 0.905254095190914,
+    "central_95pct": [
+      0.6091395792357752,
+      1.0
+    ],
+    "mean_pulse_calls": 129.0
+  },
+  "paired": {
+    "active_win_rate_vs_random": 0.958984375,
+    "active_tie_rate_vs_random": 0.01171875,
+    "mean_active_minus_random": 0.5481549191735634,
+    "active_fraction_of_exhaustive_recovery": 0.93145736294832,
+    "active_fraction_of_exhaustive_calls": 0.26744186046511625
+  },
+  "scope": "Controlled sparse-fault assay with a valid bilateral repair primitive; not a claim of general image restoration or biological learning."
+}

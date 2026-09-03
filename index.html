@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071014">
+  <meta name="description" content="Cut a digital organism. Local repairers cannot inspect the body; they receive one scalar health pulse. Watch active causal probes find the wound and carry intact information across the body.">
+  <meta property="og:title" content="Pulse Repair — the one-number organism">
+  <meta property="og:description" content="A damaged body. Bounded local workers. One global number. Can causal probes find and repair the wound?">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://anttiluode.github.io/LentoOrava/assets/pulse-repair-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Pulse Repair — the one-number organism</title>
+  <link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="LentoOrava home">
+      <span class="brand-mark">LO</span>
+      <span>LENTOORAVA / PULSE REPAIR</span>
+    </a>
+    <div class="top-links">
+      <span class="live-dot"><i></i> STATIC · LOCAL · OPEN</span>
+      <a href="https://github.com/anttiluode/LentoOrava">SOURCE ↗</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">THE ONE-NUMBER ORGANISM</p>
+        <h1>Can a body find a wound<br><em>it cannot see?</em></h1>
+        <p class="lede">
+          Its repairers see only tiny local patches. They never receive the image,
+          the wound map, or a gradient. The whole body returns one scalar health
+          pulse. Cut the wing and watch reversible causal pokes turn that number
+          into a destination.
+        </p>
+        <div class="constraint-row" aria-label="Experiment constraints">
+          <span>6×6 LOCAL READ</span>
+          <span>LOCAL WRITE</span>
+          <span>1 SCALAR / PROBE</span>
+          <span>NO BACKPROP</span>
+        </div>
+      </div>
+      <div class="hero-equation" aria-label="Core equation">
+        <span class="equation-label">THE ENTIRE RETURN CHANNEL</span>
+        <div>Δp<sub>k</sub> = P(X + εW<sub>k</sub>) − P(X)</div>
+        <small>addressed trial write → one global consequence</small>
+      </div>
+    </section>
+
+    <section class="lab-shell" id="lab">
+      <div class="lab-header">
+        <div>
+          <p class="section-kicker">LIVE CAUSAL LAB</p>
+          <h2>Cut it. Hide the map. Let the pulse guide repair.</h2>
+        </div>
+        <button class="text-button" id="howButton" type="button" aria-expanded="false">
+          WHAT IS THE TRICK? <span>＋</span>
+        </button>
+      </div>
+
+      <div class="method-drawer" id="methodDrawer" hidden>
+        <p>
+          The body is bilaterally redundant. A legal local action copies a small
+          intact patch from the opposite wing. A probe tentatively applies that
+          action to an addressed region, reads only the resulting scalar score,
+          and immediately reverts it. Adaptive binary masks narrow positive
+          consequence down to local destinations. The pristine target stays
+          inside the scalar evaluator; the search routine never receives it.
+        </p>
+        <p>
+          This is a controlled sparse-fault assay—not general image restoration.
+          The transferable tool is the interface: <code>addressed intervention → scalar consequence</code>.
+        </p>
+      </div>
+
+      <div class="lab-grid">
+        <div class="stage-card">
+          <div class="stage-topline">
+            <div class="stage-steps" aria-label="Current experiment stage">
+              <span data-stage="wound" class="active"><b>01</b> WOUND</span>
+              <span data-stage="probe"><b>02</b> PROBE</span>
+              <span data-stage="carry"><b>03</b> CARRY</span>
+              <span data-stage="repair"><b>04</b> REPAIR</span>
+            </div>
+            <button class="reveal-button" id="revealButton" type="button">REVEAL WOUND MAP</button>
+          </div>
+
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="bodyCanvas" width="768" height="768" aria-label="Interactive digital organism"></canvas>
+            <canvas id="fxCanvas" width="768" height="768" aria-hidden="true"></canvas>
+            <div class="canvas-label top-left">SHARED BODY X</div>
+            <div class="canvas-label top-right" id="canvasMode">DRAG TO CUT RIGHT WING</div>
+            <div class="center-rule" aria-hidden="true"><span>MIRROR SOURCE</span><span>REPAIR SIDE</span></div>
+            <div class="canvas-callout" id="canvasCallout">
+              Drag across the right wing<br>or make a random wound.
+            </div>
+          </div>
+
+          <div class="primary-controls">
+            <button class="button danger" id="woundButton" type="button">
+              <span>✦</span> CUT THE WING
+            </button>
+            <button class="button run" id="runButton" type="button">
+              <span>▶</span> RUN BLIND REPAIR
+            </button>
+            <button class="button secondary" id="resetButton" type="button">RESET</button>
+          </div>
+
+          <div class="sub-controls">
+            <label>
+              <span>Pulse budget</span>
+              <input id="budgetInput" type="range" min="20" max="56" step="4" value="36">
+              <output id="budgetOutput">36</output>
+            </label>
+            <label>
+              <span>Repairers</span>
+              <input id="agentsInput" type="range" min="1" max="8" step="1" value="5">
+              <output id="agentsOutput">5</output>
+            </label>
+            <label class="upload-label" for="uploadInput">
+              USE YOUR IMAGE
+              <small>local file · left half becomes blueprint</small>
+            </label>
+            <input id="uploadInput" type="file" accept="image/*" hidden>
+          </div>
+        </div>
+
+        <aside class="telemetry-card">
+          <div class="telemetry-head">
+            <div>
+              <p class="section-kicker">ONE GLOBAL CHANNEL</p>
+              <h3>Health pulse</h3>
+            </div>
+            <span class="oracle-lock">ORACLE SEALED</span>
+          </div>
+
+          <div class="pulse-number">
+            <strong id="healthValue">100.0</strong><span>/100</span>
+          </div>
+          <canvas id="pulseCanvas" width="520" height="116" aria-label="Scalar pulse history"></canvas>
+
+          <div class="metric-grid">
+            <div><span>PULSES SPENT</span><strong id="pulseCount">0</strong></div>
+            <div><span>CANDIDATE TILES</span><strong>128</strong></div>
+            <div><span>PIXELS SEEN / ACTOR</span><strong>36</strong></div>
+            <div><span>GLOBAL PIXELS SHOWN</span><strong>0</strong></div>
+          </div>
+
+          <div class="event-log" aria-live="polite">
+            <div class="log-title"><span>CAUSAL TRACE</span><span id="logState">WAITING</span></div>
+            <ol id="eventLog">
+              <li><time>00</time><span>Body intact. Add a wound.</span></li>
+            </ol>
+          </div>
+
+          <div class="comparison" id="comparison" aria-live="polite">
+            <div class="comparison-title">
+              <span>EQUAL-BUDGET RESULT</span>
+              <small>same wound · same local writes</small>
+            </div>
+            <div class="bar-row">
+              <label>ACTIVE PULSE</label>
+              <div><i id="activeBar"></i></div>
+              <strong id="activeScore">—</strong>
+            </div>
+            <div class="bar-row muted">
+              <label>RANDOM PROBE</label>
+              <div><i id="randomBar"></i></div>
+              <strong id="randomScore">—</strong>
+            </div>
+            <div class="bar-row ceiling">
+              <label>128-TILE SCAN</label>
+              <div><i id="oracleBar"></i></div>
+              <strong id="oracleScore">—</strong>
+            </div>
+            <p id="comparisonNote">Run repair to generate a paired counterfactual.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="receipt-section">
+      <div class="receipt-lead">
+        <p class="section-kicker">NOT JUST A PRETTY ANIMATION</p>
+        <h2>The committed 512-wound receipt.</h2>
+        <p>
+          One to three unseen compact wounds per trial. Five local repair writes.
+          Thirty-six scalar calls available. The adaptive method and random
+          attacker receive the same pulse budget.
+        </p>
+        <a href="results/PULSE_REPAIR.json">OPEN MACHINE-READABLE RECEIPT →</a>
+      </div>
+      <div class="receipt-numbers">
+        <div><strong>81.1%</strong><span>damage recovered<br>active pulse search</span></div>
+        <div><strong>26.3%</strong><span>damage recovered<br>equal-budget random</span></div>
+        <div><strong>95.9%</strong><span>paired trials<br>active wins</span></div>
+        <div><strong>26.7%</strong><span>of exhaustive calls<br>for 93.1% of its recovery</span></div>
+      </div>
+    </section>
+
+    <section class="explain-section">
+      <p class="section-kicker">THE CLOSED LOOP</p>
+      <h2>Two old ideas become one machine.</h2>
+      <div class="loop-grid">
+        <article>
+          <span class="loop-number">01</span>
+          <h3>Capture</h3>
+          <p>A bounded observer reads an intact 6×6 fact. No global frame enters its private state.</p>
+        </article>
+        <article>
+          <span class="loop-number">02</span>
+          <h3>Ask</h3>
+          <p>A reversible addressed write changes one global scalar. Hierarchical masks turn consequence into location.</p>
+        </article>
+        <article>
+          <span class="loop-number">03</span>
+          <h3>Carry</h3>
+          <p>A mobile observer crosses the shared field carrying only the local patch it acquired.</p>
+        </article>
+        <article>
+          <span class="loop-number">04</span>
+          <h3>Change the whole</h3>
+          <p>Its distant local write improves the one global image. Local becomes global; the pulse returns global to local.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="utility-section">
+      <div>
+        <p class="section-kicker">WHY KEEP THIS TOOL</p>
+        <h2>A tiny black-box debugger<br>wearing an organism costume.</h2>
+      </div>
+      <div class="utility-grid">
+        <article>
+          <span>AI SYSTEM</span>
+          <h3>Which feature, head, patch, or state block can change the output?</h3>
+          <p>Replace local image writes with feature ablations. Keep the single task score.</p>
+        </article>
+        <article>
+          <span>DISTRIBUTED BODY</span>
+          <h3>Where should scarce repair or inspection effort go next?</h3>
+          <p>Use coded actuator tests when no worker can inspect the complete system.</p>
+        </article>
+        <article>
+          <span>ACTIVE SCIENCE</span>
+          <h3>Recover enough causal structure without reconstructing everything.</h3>
+          <p>Stop once the next useful action is identifiable; full maps are optional.</p>
+        </article>
+      </div>
+      <p class="scope-note">
+        Known territory underneath: finite differences, group testing, zeroth-order
+        optimization, causal ablation. The experiment here is the constraint set:
+        persistent spatial body + bounded mobile actors + local read/write + one shared consequence channel.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <span>LENTOORAVA · FLYING SQUIRREL CONSERVATION PROGRAM</span>
+    <button id="shareButton" type="button">SHARE THE WOUND ↗</button>
+    <a href="https://github.com/anttiluode/LentoOrava">CODE + ATTACKERS + RECEIPTS</a>
+  </footer>
+
+  <script src="web/app.js"></script>
+</body>
+</html>

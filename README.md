@@ -2,6 +2,19 @@
 
 **Flying squirrel conservation program. Sol thinking repo.**
 
+[![Pulse Repair — a body, local workers, and one global number](assets/pulse-repair-card.png)](https://anttiluode.github.io/LentoOrava/)
+
+## [Launch the live Pulse Repair experiment →](https://anttiluode.github.io/LentoOrava/)
+
+Cut a digital organism in the browser. Its repairers receive 6×6 local patches,
+local write access, and **one scalar global health pulse**—never the wound map or
+a gradient. Reversible hierarchical probes localize useful interventions; mobile
+observers then carry intact information from the opposite side to the wound.
+
+The page is static, dependency-free, and runs entirely on-device. You can also
+load your own image; its left half becomes a bilateral repair blueprint and the
+file never leaves the browser.
+
 `LentoOrava` asks one concrete question:
 
 > **Can a bounded observer capture a local fact and cause the corresponding fact to appear somewhere distant?**
@@ -45,6 +58,58 @@ one global image
 ```
 
 The global state never has to be globally observed. It only has to be **causally shared**.
+
+# Pulse Repair — global consequence returns to local actors
+
+The single-pixel-camera seam closes the loop in the opposite direction:
+
+```text
+bounded local READ
+        ↓
+private state carries a fact
+        ↓
+distant local WRITE changes the body
+        ↓
+one scalar global consequence pulse
+        ↓
+active addressed probes localize the next useful WRITE
+```
+
+For a reversible trial write `W_k` at a known address:
+
+```text
+Δp_k = P(X + εW_k) - P(X)
+```
+
+The unknown “pixels” are now local causal contributions rather than brightness.
+The live demo uses adaptive binary region masks to find compact damage without
+handing search the target, spatial error, or autograd.
+
+## Executed scalar-only fault assay
+
+The controlled assay uses a known bilateral local repair primitive: copy a
+small intact patch from the opposite side. Across 512 deterministic trials with
+one to three unseen wounds, 128 candidate tiles, five committed writes, and a
+36-call scalar budget:
+
+| method | mean damage recovered | scalar calls |
+|---|---:|---:|
+| **adaptive pulse search** | **81.09%** | 34.5 mean |
+| equal-budget random probing | 26.28% | 36 |
+| exhaustive 128-tile scan | 87.06% | 129 |
+
+Adaptive beat random on **95.90%** of paired wounds. At 26.74% of the
+exhaustive scan's calls, it recovered 93.15% as much damage.
+
+- Human-readable receipt: [`results/PULSE_REPAIR.md`](results/PULSE_REPAIR.md)
+- Machine-readable receipt: [`results/PULSE_REPAIR.json`](results/PULSE_REPAIR.json)
+- Reproduction: [`experiments/pulse_repair_benchmark.py`](experiments/pulse_repair_benchmark.py)
+
+Scope matters: this is sparse fault localization under a valid local repair
+rule. It is **not** general image restoration, learned regeneration, or a claim
+of biological credit assignment. It establishes the smaller useful mechanism:
+addressed interventions plus a scalar outcome can identify where scarce local
+action should go.
 
 # Gate 0 — read, carry, write
 

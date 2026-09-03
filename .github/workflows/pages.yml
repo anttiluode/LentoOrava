@@ -1,0 +1,49 @@
+name: deploy live demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - web/**
+      - assets/**
+      - results/PULSE_REPAIR.json
+      - results/PULSE_REPAIR.md
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble static artifact
+        run: |
+          mkdir -p _site/results
+          cp index.html _site/
+          cp -R web assets _site/
+          cp results/PULSE_REPAIR.json results/PULSE_REPAIR.md _site/results/
+          touch _site/.nojekyll
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
