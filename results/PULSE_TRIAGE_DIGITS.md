@@ -61,6 +61,8 @@ Machine-readable receipt: [`PULSE_TRIAGE_DIGITS.json`](PULSE_TRIAGE_DIGITS.json)
 Reproduce:
 
 ```bash
+python -m pip install -r requirements-pulsetriage.txt
+python -m pip install -e . --no-deps
 python experiments/pulse_triage_digits.py \
   --trials 64 \
   --permutations 64 \

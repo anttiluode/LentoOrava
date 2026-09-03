@@ -15,6 +15,7 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements.txt
       - run: python -m pip install -r requirements-pulsetriage.txt
+      - run: python -m pip install -e . --no-deps
       - run: PYTHONPATH=. pytest -q
       - run: python examples/flag_regression.py
       - run: >-

@@ -13,6 +13,7 @@ group of candidates can be safely rolled back for one trial.
 From the repository root:
 
 ```bash
+python -m pip install -e .
 python examples/flag_regression.py
 ```
 
@@ -160,6 +161,7 @@ confirmation, a strict call ledger, and an address-shuffle refusal test.
 
 ```bash
 python -m pip install -r requirements-pulsetriage.txt
+python -m pip install -e . --no-deps
 python experiments/pulse_triage_digits.py \
   --trials 64 \
   --out results/PULSE_TRIAGE_DIGITS.json
