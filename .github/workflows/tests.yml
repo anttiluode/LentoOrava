@@ -27,5 +27,9 @@ jobs:
       - run: >-
           python -m experiments.pulse_triage_repeated_cache
           --check
-          --out /tmp/PULSE_TRIAGE_CACHE.json
+          --out /tmp/PULSE_TRIAGE_CACHE_SCREEN_ONLY.json
+      - run: >-
+          python -m experiments.pulse_triage_repeated_cache_confirmed
+          --check
+          --out /tmp/PULSE_TRIAGE_CACHE_CONFIRMED.json
       - run: node --check web/app.js
