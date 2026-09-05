@@ -25,7 +25,7 @@ jobs:
           --require-pass
           --out /tmp/PULSE_TRIAGE_DIGITS.json
       - run: >-
-          python experiments/pulse_triage_repeated_cache.py
+          python -m experiments.pulse_triage_repeated_cache
           --check
           --out /tmp/PULSE_TRIAGE_CACHE.json
       - run: node --check web/app.js
